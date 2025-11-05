@@ -9,6 +9,7 @@ let dateSelector;
 let getFactBtn;
 let didYouKnow;
 let didYouKnowText;
+let loadingScreen;
 let allItems = []; // Store all fetched items for filtering
 
 // Small list of fun space facts. Add or edit facts here.
@@ -49,8 +50,9 @@ function init() {
   getFactBtn = document.getElementById('getFactBtn');
   didYouKnow = document.getElementById('didYouKnow');
   didYouKnowText = document.getElementById('didYouKnowText');
+  loadingScreen = document.getElementById('loadingScreen');
 
-  if (!getImageBtn || !gallery || !dateSelector || !getFactBtn || !didYouKnow) {
+  if (!getImageBtn || !gallery || !dateSelector || !getFactBtn || !didYouKnow || !loadingScreen) {
     console.warn('Missing required elements — skipping initialization.');
     return;
   }
@@ -64,19 +66,19 @@ function init() {
     const fact = randomFact();
     didYouKnowText.textContent = fact;
 
-    // If the fact box is already visible, reset and show new fact
+    // Toggle the visible class to trigger the animation
     if (didYouKnow.classList.contains('visible')) {
-      // Reset to hidden state
+      // Hide the fact
       didYouKnow.classList.remove('visible');
       didYouKnow.classList.add('hidden');
-
-      // Wait for reset animation to complete (1.2 seconds), then show with new fact
+      
+      // Wait for animation, then show new fact
       setTimeout(() => {
         didYouKnow.classList.remove('hidden');
         didYouKnow.classList.add('visible');
       }, 1200);
     } else {
-      // Show the fact box - button slides left, fact scrolls in from right
+      // Show the fact - button slides left, fact appears from behind
       didYouKnow.classList.remove('hidden');
       didYouKnow.classList.add('visible');
     }
@@ -89,6 +91,12 @@ function init() {
       getImageBtn.disabled = true;
       dateSelector.disabled = true;
       getImageBtn.textContent = 'Loading...';
+
+      // Show the animated loading screen
+      loadingScreen.classList.remove('hidden');
+
+      // Track when we started loading (to ensure minimum 5 seconds)
+      const startTime = Date.now();
 
       // Show a short loading message in the gallery while the fetch runs
       gallery.innerHTML = `<div class="placeholder"><div class="placeholder-icon">🔄</div><p>Loading space photos…</p></div>`;
@@ -110,7 +118,22 @@ function init() {
 
       // Render the gallery with the filtered array
       renderGallery(itemsToDisplay);
+
+      // Calculate how long the loading took
+      const elapsedTime = Date.now() - startTime;
+      // Minimum display time is 5 seconds (5000 milliseconds)
+      const minimumDisplayTime = 5000;
+      const remainingTime = Math.max(0, minimumDisplayTime - elapsedTime);
+
+      // Wait for the remaining time before hiding the loading screen
+      await new Promise(resolve => setTimeout(resolve, remainingTime));
+
+      // Hide the loading screen after minimum display time
+      loadingScreen.classList.add('hidden');
+
     } catch (err) {
+      // Hide loading screen on error
+      loadingScreen.classList.add('hidden');
       // Show a simple error placeholder in the gallery
       gallery.innerHTML = '<div class="placeholder"><p>Error loading images. Check the console for details.</p></div>';
     } finally {
@@ -306,6 +329,12 @@ const modalExplanation = document.getElementById('modalExplanation');
 function openModal(item) {
   if (!modal) return;
 
+  // Show the loading screen while the modal content loads
+  loadingScreen.classList.remove('hidden');
+  
+  // Track when loading started (to ensure minimum 3 seconds display)
+  const loadStartTime = Date.now();
+
   // Clear previous media
   modalMedia.innerHTML = '';
 
@@ -315,12 +344,35 @@ function openModal(item) {
   modalDate.textContent = formatDate(item.date);
   modalExplanation.textContent = item.explanation || '';
 
+  // Helper function to hide loading screen after minimum time
+  const hideLoadingAfterMinTime = () => {
+    const elapsedTime = Date.now() - loadStartTime;
+    const minimumDisplayTime = 3000; // 3 seconds in milliseconds
+    const remainingTime = Math.max(0, minimumDisplayTime - elapsedTime);
+    
+    // Wait for remaining time before hiding
+    setTimeout(() => {
+      loadingScreen.classList.add('hidden');
+    }, remainingTime);
+  };
+
   // Determine media to show: prefer large image (hdurl) for images
   if (item.media_type === 'image' && (item.hdurl || item.url)) {
     const img = document.createElement('img');
     img.src = item.hdurl || item.url;
     img.alt = item.title || 'Image';
     img.loading = 'lazy';
+    
+    // Hide loading screen when image loads (after minimum time)
+    img.addEventListener('load', () => {
+      hideLoadingAfterMinTime();
+    });
+    
+    // Hide loading screen even if image fails to load (after minimum time)
+    img.addEventListener('error', () => {
+      hideLoadingAfterMinTime();
+    });
+    
     modalMedia.appendChild(img);
   } else if (item.media_type === 'video') {
     // Show thumbnail if available (feed-provided or derive from YouTube), otherwise fallback text + link
@@ -330,12 +382,26 @@ function openModal(item) {
       img.src = thumbSrc;
       img.alt = item.title ? `${item.title} (video thumbnail)` : 'Video thumbnail';
       img.loading = 'lazy';
+      
+      // Hide loading screen when thumbnail loads (after minimum time)
+      img.addEventListener('load', () => {
+        hideLoadingAfterMinTime();
+      });
+      
+      // Hide loading screen even if thumbnail fails to load (after minimum time)
+      img.addEventListener('error', () => {
+        hideLoadingAfterMinTime();
+      });
+      
       modalMedia.appendChild(img);
     } else {
       // No thumbnail: show a simple message
       const p = document.createElement('p');
       p.textContent = 'Video (no thumbnail available).';
       modalMedia.appendChild(p);
+      
+      // Hide loading screen after minimum time since there's no image to load
+      hideLoadingAfterMinTime();
     }
 
     // If recognized YouTube embed available, add a small "Play inline" button; otherwise add open link
@@ -348,6 +414,10 @@ function openModal(item) {
       playBtn.textContent = 'Play inline';
       playBtn.style.marginRight = '10px';
       playBtn.addEventListener('click', () => {
+        // Show loading screen when loading video
+        loadingScreen.classList.remove('hidden');
+        const videoLoadStart = Date.now();
+        
         // Replace media with iframe using the safe embed URL and attributes
         modalMedia.innerHTML = '';
         const iframe = document.createElement('iframe');
@@ -361,6 +431,22 @@ function openModal(item) {
         iframe.allowFullscreen = true;
         iframe.loading = 'lazy';
         iframe.className = 'video-embed';
+        
+        // Hide loading screen after minimum time when iframe loads
+        iframe.addEventListener('load', () => {
+          const videoElapsed = Date.now() - videoLoadStart;
+          const videoMinTime = 3000;
+          const videoRemaining = Math.max(0, videoMinTime - videoElapsed);
+          setTimeout(() => {
+            loadingScreen.classList.add('hidden');
+          }, videoRemaining);
+        });
+        
+        // Fallback: hide after minimum time if load event doesn't fire
+        setTimeout(() => {
+          loadingScreen.classList.add('hidden');
+        }, 3000);
+        
         modalMedia.appendChild(iframe);
       });
       controls.appendChild(playBtn);
@@ -384,6 +470,9 @@ function openModal(item) {
     link.rel = 'noopener noreferrer';
     link.textContent = 'Open media';
     modalMedia.appendChild(link);
+    
+    // Hide loading screen after minimum time since there's no media to load
+    hideLoadingAfterMinTime();
   }
 
   // Show modal
@@ -398,6 +487,9 @@ function closeModal() {
   modal.setAttribute('aria-hidden', 'true');
   // clear media to stop playback if any
   if (modalMedia) modalMedia.innerHTML = '';
+  
+  // Hide loading screen when modal is closed
+  loadingScreen.classList.add('hidden');
 }
 
 // Close behavior

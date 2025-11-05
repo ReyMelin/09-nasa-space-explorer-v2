@@ -371,20 +371,17 @@ a:hover,
   align-items: center;
   background: #fff;
   border-left: 4px solid var(--theme-color-primary);
-  padding: 10px 14px;
-  /* Start with small margins that fit just the button */
-  margin: 12px auto;
-  max-width: fit-content;
+  padding: 8px 12px;
+  margin: 12px 20px;
   border-radius: 6px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.06);
   color: var(--nasa-dark);
   font-size: 0.95rem;
-  /* Animation properties for horizontal unrolling effect - slower timing */
+  line-height: 1.5;
   overflow: hidden;
   position: relative;
-  /* Maintain consistent height based on button */
-  min-height: 40px;
-  transition: all 1.2s ease-in-out, margin 1.2s ease-in-out, max-width 1.2s ease-in-out;
+  /* Smooth transition for all changes */
+  transition: all 1.2s ease-in-out;
 }
 
 /* The Get Space Facts button inside the fact section */
@@ -396,69 +393,52 @@ a:hover,
   border-radius: 4px;
   font-size: 14px;
   font-weight: 600;
+  line-height: 1.4;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  /* Slower transition for smoother animation */
-  transition: transform 1.2s ease-in-out, opacity 1.2s ease-in-out;
-  z-index: 1;
+  /* Slide the button smoothly */
+  transition: transform 1.2s ease-in-out;
+  position: relative;
+  z-index: 2;
 }
 
 .did-you-know #getFactBtn:hover {
   background-color: var(--theme-color-accent-cool-darker);
 }
 
-/* Hidden state - only button visible, fact text hidden */
-.did-you-know.hidden {
-  padding: 10px 14px;
-  border-left-width: 4px;
-  /* Tight margins around just the button */
-  margin: 12px auto;
-  max-width: fit-content;
-  /* Keep consistent height */
-  min-height: 40px;
-}
-
+/* Hidden state - only show button, hide fact text */
 .did-you-know.hidden strong,
 .did-you-know.hidden #didYouKnowText {
   opacity: 0;
-  max-width: 0;
-  overflow: hidden;
-  margin: 0;
-  padding: 0;
+  position: absolute;
+  left: 60px;
 }
 
-/* Visible state - expand margins to left and right, fact scrolls into view */
-.did-you-know.visible {
-  /* Expand margins to give more space for the fact */
-  margin: 12px 20px;
-  max-width: 100%;
-  /* Allow height to adjust to content when visible */
-  min-height: fit-content;
-}
-
+/* Visible state - slide button left, reveal fact */
 .did-you-know.visible #getFactBtn {
-  transform: translateX(-120%);
-  opacity: 0;
+  /* Slide button to the left */
+  transform: translateX(-100px);
 }
 
 .did-you-know.visible strong,
 .did-you-know.visible #didYouKnowText {
   opacity: 1;
-  max-width: 100%;
-  /* Slower animation for smoother reveal */
-  animation: slideInFromRight 1.2s ease-in-out;
+  position: static;
+  /* Fade in the fact text */
+  animation: fadeIn 1.2s ease-in-out;
 }
 
-/* Slide in animation from right to left - slower and smoother */
-@keyframes slideInFromRight {
+/* Fade in animation for the fact text */
+@keyframes fadeIn {
   0% {
     opacity: 0;
-    transform: translateX(80px);
+  }
+  50% {
+    opacity: 0;
   }
   100% {
     opacity: 1;
-    transform: translateX(0);
   }
 }
 
@@ -466,13 +446,146 @@ a:hover,
   color: var(--theme-color-primary);
   margin-right: 6px;
   white-space: nowrap;
-  /* Slower transitions */
-  transition: opacity 1.2s ease-in-out, max-width 1.2s ease-in-out;
 }
 
 .did-you-know #didYouKnowText {
-  /* Slower transitions for smoother feel */
-  transition: opacity 1.2s ease-in-out, max-width 1.2s ease-in-out;
-  /* Allow text to wrap */
   white-space: normal;
+  line-height: 1.5;
+}
+
+/* Mobile responsive styles - vertical layout on smaller screens */
+@media (max-width: 640px) {
+  /* Stack elements vertically on mobile */
+  .did-you-know {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* Hidden state on mobile - hide fact text below button */
+  .did-you-know.hidden strong,
+  .did-you-know.hidden #didYouKnowText {
+    position: static;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    left: auto;
+  }
+
+  /* Visible state on mobile - button slides up, fact appears below */
+  .did-you-know.visible #getFactBtn {
+    /* Slide button up instead of left */
+    transform: translateY(-8px);
+  }
+
+  .did-you-know.visible strong,
+  .did-you-know.visible #didYouKnowText {
+    position: static;
+    opacity: 1;
+    max-height: 500px;
+    /* Slide down animation for mobile */
+    animation: slideDown 1.2s ease-in-out;
+  }
+
+  /* Slide down animation for mobile */
+  @keyframes slideDown {
+    0% {
+      opacity: 0;
+      max-height: 0;
+      transform: translateY(-20px);
+    }
+    50% {
+      opacity: 0.5;
+    }
+    100% {
+      opacity: 1;
+      max-height: 500px;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Loading screen styles */
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Hide the loading screen */
+.loading-screen.hidden {
+  display: none;
+  opacity: 0;
+}
+
+/* Container for the circular path */
+.loading-circle {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin-bottom: 30px;
+}
+
+/* Shuttle image that flies in a circle */
+.loading-shuttle {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  top: 50%;
+  left: 50%;
+  /* Start the shuttle at the top of the circle */
+  transform-origin: center;
+  /* Animate the shuttle flying in a circular path */
+  animation: flyInCircle 3s linear infinite;
+}
+
+/* Animation for shuttle flying in a circular path */
+@keyframes flyInCircle {
+  0% {
+    /* Start at top, shuttle points right (counterclockwise) */
+    transform: translate(-50%, -50%) rotate(0deg) translateX(100px) rotate(90deg);
+  }
+  25% {
+    /* Left side, shuttle points up */
+    transform: translate(-50%, -50%) rotate(-90deg) translateX(100px) rotate(90deg);
+  }
+  50% {
+    /* Bottom, shuttle points left */
+    transform: translate(-50%, -50%) rotate(-180deg) translateX(100px) rotate(90deg);
+  }
+  75% {
+    /* Right side, shuttle points down */
+    transform: translate(-50%, -50%) rotate(-270deg) translateX(100px) rotate(90deg);
+  }
+  100% {
+    /* Back to top */
+    transform: translate(-50%, -50%) rotate(-360deg) translateX(100px) rotate(90deg);
+  }
+}
+
+/* Loading text */
+.loading-text {
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-align: center;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Pulse animation for loading text */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
