@@ -5,6 +5,11 @@ const apodData = 'https://cdn.jsdelivr.net/gh/GCA-Classroom/apod/data.json';
 // is loaded at the end of <body> or earlier. Functions below use these variables.
 let getImageBtn;
 let gallery;
+let dateSelector;
+let getFactBtn;
+let didYouKnow;
+let didYouKnowText;
+let allItems = []; // Store all fetched items for filtering
 
 // Small list of fun space facts. Add or edit facts here.
 const SPACE_FACTS = [
@@ -20,43 +25,114 @@ function randomFact() {
   return SPACE_FACTS[Math.floor(Math.random() * SPACE_FACTS.length)];
 }
 
+// Format a date string (YYYY-MM-DD) to "Month Day, Year" format
+// Example: "2021-04-15" becomes "April 15, 2021"
+function formatDate(dateString) {
+  // If no date provided, return empty string
+  if (!dateString) return '';
+  
+  // Create a Date object from the date string
+  const date = new Date(dateString + 'T00:00:00');
+  
+  // Get the month name, day, and year
+  const options = { year: 'numeric', month: 'long', day: 'numeric' };
+  
+  // Format the date using toLocaleDateString
+  return date.toLocaleDateString('en-US', options);
+}
+
 // Initialize when DOM is ready (or immediately if already ready)
 function init() {
   getImageBtn = document.getElementById('getImageBtn');
   gallery = document.getElementById('gallery');
+  dateSelector = document.getElementById('dateSelector');
+  getFactBtn = document.getElementById('getFactBtn');
+  didYouKnow = document.getElementById('didYouKnow');
+  didYouKnowText = document.getElementById('didYouKnowText');
 
-  // New: display a random Did You Know fact on load
-  const didYouKnowText = document.getElementById('didYouKnowText');
-  if (didYouKnowText) {
-    didYouKnowText.textContent = randomFact();
-  }
-
-  if (!getImageBtn || !gallery) {
-    console.warn('Missing #getImageBtn or #gallery — skipping initialization.');
+  if (!getImageBtn || !gallery || !dateSelector || !getFactBtn || !didYouKnow) {
+    console.warn('Missing required elements — skipping initialization.');
     return;
   }
+
+  // Fetch data on page load to populate the date selector
+  loadDataAndPopulateDates();
+
+  // Click handler for "Get Space Facts" button
+  getFactBtn.addEventListener('click', () => {
+    // Get a random fact and update the text
+    const fact = randomFact();
+    didYouKnowText.textContent = fact;
+
+    // If the fact box is already visible, reset and show new fact
+    if (didYouKnow.classList.contains('visible')) {
+      // Reset to hidden state
+      didYouKnow.classList.remove('visible');
+      didYouKnow.classList.add('hidden');
+
+      // Wait for reset animation to complete (1.2 seconds), then show with new fact
+      setTimeout(() => {
+        didYouKnow.classList.remove('hidden');
+        didYouKnow.classList.add('visible');
+      }, 1200);
+    } else {
+      // Show the fact box - button slides left, fact scrolls in from right
+      didYouKnow.classList.remove('hidden');
+      didYouKnow.classList.add('visible');
+    }
+  });
 
   // Click handler to fetch and display APOD data
   getImageBtn.addEventListener('click', async () => {
     try {
       // Simple loading state
       getImageBtn.disabled = true;
-      const oldText = getImageBtn.textContent;
+      dateSelector.disabled = true;
       getImageBtn.textContent = 'Loading...';
 
       // Show a short loading message in the gallery while the fetch runs
       gallery.innerHTML = `<div class="placeholder"><div class="placeholder-icon">🔄</div><p>Loading space photos…</p></div>`;
 
-      const items = await fetchCdnJson(apodData);
+      // Fetch data only if we haven't already
+      if (allItems.length === 0) {
+        allItems = await fetchCdnJson(apodData);
+        // Populate the date selector with available dates
+        populateDateSelector(allItems);
+      }
 
-      // Render the gallery with the fetched array
-      renderGallery(items);
+      // Get the selected date from the dropdown
+      const selectedDate = dateSelector.value;
+
+      // Filter items by selected date (or show all if no date selected)
+      const itemsToDisplay = selectedDate 
+        ? allItems.filter(item => item.date === selectedDate)
+        : allItems;
+
+      // Render the gallery with the filtered array
+      renderGallery(itemsToDisplay);
     } catch (err) {
       // Show a simple error placeholder in the gallery
       gallery.innerHTML = '<div class="placeholder"><p>Error loading images. Check the console for details.</p></div>';
     } finally {
       getImageBtn.disabled = false;
-      getImageBtn.textContent = 'Fetch Space Images';
+      dateSelector.disabled = false;
+      getImageBtn.textContent = 'Get Space Images';
+    }
+  });
+
+  // When user changes the date selector, automatically update the gallery
+  dateSelector.addEventListener('change', () => {
+    // Only filter if we have data already loaded
+    if (allItems.length > 0) {
+      const selectedDate = dateSelector.value;
+      
+      // Filter items by selected date (or show all if no date selected)
+      const itemsToDisplay = selectedDate 
+        ? allItems.filter(item => item.date === selectedDate)
+        : allItems;
+      
+      // Render the filtered gallery
+      renderGallery(itemsToDisplay);
     }
   });
 }
@@ -97,28 +173,21 @@ function createGalleryItem(item) {
   wrapper.setAttribute('role', 'button');
   wrapper.setAttribute('aria-label', `${item.title || 'Item'} — ${item.date || ''} — Press Enter to open details`);
 
-  // Title + date
-  const meta = document.createElement('p');
-  const title = item.title ? item.title : 'Untitled';
-  const date = item.date ? item.date : '';
-  meta.textContent = `${title} — ${date}`;
-  wrapper.appendChild(meta);
-
   // Media: show image when available, otherwise show a simple link
   if (item.media_type === 'image' && item.url) {
     const img = document.createElement('img');
     img.src = item.url;
-    img.alt = title;
+    img.alt = item.title ? item.title : 'Untitled';
     // Keep images accessible and responsive
     img.loading = 'lazy';
-    wrapper.insertBefore(img, meta);
+    wrapper.appendChild(img);
   } else if (item.url) {
-    // For videos or other media types show a thumbnail (if available) that links to the item
+    // For videos or other media types show a thumbnail (if available)
     if (item.thumbnail_url) {
       // Create an image element for the thumbnail
       const thumb = document.createElement('img');
       thumb.src = item.thumbnail_url;
-      thumb.alt = title;
+      thumb.alt = item.title ? item.title : 'Untitled';
       // Keep thumbnails accessible and lazy-loaded
       thumb.loading = 'lazy';
 
@@ -129,8 +198,8 @@ function createGalleryItem(item) {
       thumbLink.rel = 'noopener noreferrer';
       thumbLink.appendChild(thumb);
 
-      // Insert the linked thumbnail before the metadata
-      wrapper.insertBefore(thumbLink, meta);
+      // Add the linked thumbnail to the card
+      wrapper.appendChild(thumbLink);
     } else {
       // Fallback: show a simple text link if no thumbnail is available
       const linkText = document.createElement('span');
@@ -140,9 +209,24 @@ function createGalleryItem(item) {
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       link.appendChild(linkText);
-      wrapper.insertBefore(link, meta);
+      wrapper.appendChild(link);
     }
   }
+
+  // Title - display in bold and centered directly under the image
+  const title = item.title ? item.title : 'Untitled';
+  const titleEl = document.createElement('h3');
+  titleEl.className = 'gallery-item-title';
+  titleEl.textContent = title;
+  wrapper.appendChild(titleEl);
+
+  // Date - display in bold and blue below the title
+  // Format the date to "Month Day, Year" format
+  const date = formatDate(item.date);
+  const dateEl = document.createElement('p');
+  dateEl.className = 'gallery-item-date';
+  dateEl.textContent = date;
+  wrapper.appendChild(dateEl);
 
   // After building the item's DOM nodes, attach a click handler that opens the modal.
   // Ensure clicks on anchors (links) inside the item do not open the modal.
@@ -189,6 +273,27 @@ function renderGallery(items) {
   }
 }
 
+// Populate the date selector dropdown with available dates from the API
+function populateDateSelector(items) {
+  // Clear existing options except the first "Select a date..." option
+  dateSelector.innerHTML = '<option value="">All dates</option>';
+  
+  // Get all unique dates from the items
+  const dates = items.map(item => item.date).filter(date => date);
+  
+  // Sort dates in descending order (newest first)
+  dates.sort((a, b) => b.localeCompare(a));
+  
+  // Add an option for each date
+  for (const date of dates) {
+    const option = document.createElement('option');
+    option.value = date;
+    // Format the date for display
+    option.textContent = formatDate(date);
+    dateSelector.appendChild(option);
+  }
+}
+
 // Modal helpers & wiring
 const modal = document.getElementById('modal');
 const modalOverlay = document.getElementById('modalOverlay');
@@ -205,8 +310,9 @@ function openModal(item) {
   modalMedia.innerHTML = '';
 
   // Title & date & explanation
+  // Format the date to "Month Day, Year" format
   modalTitle.textContent = item.title || 'Untitled';
-  modalDate.textContent = item.date || '';
+  modalDate.textContent = formatDate(item.date);
   modalExplanation.textContent = item.explanation || '';
 
   // Determine media to show: prefer large image (hdurl) for images
@@ -302,3 +408,26 @@ window.addEventListener('keydown', (e) => {
     closeModal();
   }
 });
+
+// Fetch data on page load and populate the date selector
+async function loadDataAndPopulateDates() {
+  try {
+    // Disable the date selector while loading
+    dateSelector.disabled = true;
+    
+    // Fetch the data from the API
+    allItems = await fetchCdnJson(apodData);
+    
+    // Populate the date selector with available dates
+    populateDateSelector(allItems);
+    
+    // Enable the date selector after data is loaded
+    dateSelector.disabled = false;
+  } catch (err) {
+    // If there's an error, show a message in the console
+    console.error('Failed to load dates on page load:', err);
+    
+    // Re-enable the date selector even if there was an error
+    dateSelector.disabled = false;
+  }
+}

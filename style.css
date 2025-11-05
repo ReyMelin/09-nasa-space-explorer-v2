@@ -110,6 +110,7 @@ h1 {
 
 /* Inputs and buttons */
 input[type="date"],
+select,
 button {
   font-family: Arial, sans-serif;
   font-weight: normal;
@@ -120,6 +121,12 @@ button {
   font-size: 16px;
   line-height: 1.4;
   width: 100%;
+}
+
+/* Select dropdown specific styling */
+select {
+  background-color: #fff;
+  cursor: pointer;
 }
 
 /* Button specific - primary action uses NASA red */
@@ -148,6 +155,7 @@ button:focus {
   }
   
   input[type="date"],
+  select,
   button {
     width: auto;
   }
@@ -231,6 +239,26 @@ button:focus {
   height: 200px;
   object-fit: cover;
   border-radius: 4px;
+}
+
+/* Title: bold and centered directly under the image */
+.gallery-item-title {
+  margin-top: 10px;
+  padding: 5px;
+  font-size: var(--h5-size);
+  font-weight: bold;
+  text-align: center;
+  color: var(--nasa-dark);
+}
+
+/* Date: bold and blue below the card */
+.gallery-item-date {
+  margin-top: 5px;
+  padding: 5px;
+  font-size: var(--h6-size);
+  font-weight: bold;
+  text-align: center;
+  color: var(--nasa-blue);
 }
 
 /* Gallery item text sizes use theme tokens */
@@ -344,13 +372,107 @@ a:hover,
   background: #fff;
   border-left: 4px solid var(--theme-color-primary);
   padding: 10px 14px;
-  margin: 12px 20px;
+  /* Start with small margins that fit just the button */
+  margin: 12px auto;
+  max-width: fit-content;
   border-radius: 6px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.06);
   color: var(--nasa-dark);
   font-size: 0.95rem;
+  /* Animation properties for horizontal unrolling effect - slower timing */
+  overflow: hidden;
+  position: relative;
+  /* Maintain consistent height based on button */
+  min-height: 40px;
+  transition: all 1.2s ease-in-out, margin 1.2s ease-in-out, max-width 1.2s ease-in-out;
 }
+
+/* The Get Space Facts button inside the fact section */
+.did-you-know #getFactBtn {
+  background-color: var(--nasa-blue);
+  color: #fff;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  /* Slower transition for smoother animation */
+  transition: transform 1.2s ease-in-out, opacity 1.2s ease-in-out;
+  z-index: 1;
+}
+
+.did-you-know #getFactBtn:hover {
+  background-color: var(--theme-color-accent-cool-darker);
+}
+
+/* Hidden state - only button visible, fact text hidden */
+.did-you-know.hidden {
+  padding: 10px 14px;
+  border-left-width: 4px;
+  /* Tight margins around just the button */
+  margin: 12px auto;
+  max-width: fit-content;
+  /* Keep consistent height */
+  min-height: 40px;
+}
+
+.did-you-know.hidden strong,
+.did-you-know.hidden #didYouKnowText {
+  opacity: 0;
+  max-width: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+/* Visible state - expand margins to left and right, fact scrolls into view */
+.did-you-know.visible {
+  /* Expand margins to give more space for the fact */
+  margin: 12px 20px;
+  max-width: 100%;
+  /* Allow height to adjust to content when visible */
+  min-height: fit-content;
+}
+
+.did-you-know.visible #getFactBtn {
+  transform: translateX(-120%);
+  opacity: 0;
+}
+
+.did-you-know.visible strong,
+.did-you-know.visible #didYouKnowText {
+  opacity: 1;
+  max-width: 100%;
+  /* Slower animation for smoother reveal */
+  animation: slideInFromRight 1.2s ease-in-out;
+}
+
+/* Slide in animation from right to left - slower and smoother */
+@keyframes slideInFromRight {
+  0% {
+    opacity: 0;
+    transform: translateX(80px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 .did-you-know strong {
   color: var(--theme-color-primary);
   margin-right: 6px;
+  white-space: nowrap;
+  /* Slower transitions */
+  transition: opacity 1.2s ease-in-out, max-width 1.2s ease-in-out;
+}
+
+.did-you-know #didYouKnowText {
+  /* Slower transitions for smoother feel */
+  transition: opacity 1.2s ease-in-out, max-width 1.2s ease-in-out;
+  /* Allow text to wrap */
+  white-space: normal;
 }

@@ -18,11 +18,16 @@
     </header>
 
     <div class="filters">
-      <button id="getImageBtn">Fetch Space Images</button>
+      <!-- Date selector dropdown populated from API data -->
+      <select id="dateSelector">
+        <option value="">Select a date...</option>
+      </select>
+      <button id="getImageBtn">Get Space Images</button>
     </div>
 
-    <!-- New: Did You Know fact shown on each load -->
-    <section id="didYouKnow" class="did-you-know" aria-live="polite">
+    <!-- Did You Know fact shown when button is clicked - button is on the same line -->
+    <section id="didYouKnow" class="did-you-know hidden" aria-live="polite">
+      <button id="getFactBtn">Get Space Facts</button>
       <strong>Did you know?</strong>
       <span id="didYouKnowText">🔭 Loading a space fact…</span>
     </section>
