@@ -5,11 +5,45 @@
   padding: 0;
 }
 
+/* NASA brand palette (mapped from Sass theme tokens) */
+:root {
+  /* Theme tokens (mapped from the provided USWDS token names to approximate HEX) */
+  --theme-color-primary:               #0b3d91; /* blue-warm-60v */
+  --theme-color-secondary-lighter:     #fdecea; /* red-cool-10 */
+  --theme-color-secondary:             #ce1126; /* red-50v */
+  --theme-color-secondary-vivid:       #ce1126; /* red-50v (vivid) */
+  --theme-color-accent-cool:           #1970d6; /* blue-cool-20v */
+  --theme-color-accent-cool-dark:      #00a0b0; /* cyan-30v (approx) */
+  --theme-color-accent-cool-darker:    #0f6fb0; /* blue-cool-40v */
+  --theme-color-accent-cool-darkest:   #083a86; /* blue-cool-60v */
+  --theme-color-warning-lighter:       #fff8e1; /* gold-5v (approx) */
+  --theme-color-warning-light:         #f3c200; /* gold-20v (approx) */
+
+  /* Backwards-compatible aliases used elsewhere in the CSS */
+  --nasa-blue: var(--theme-color-primary);
+  --nasa-light-blue: var(--theme-color-accent-cool);
+  --nasa-red: var(--theme-color-secondary);
+  --nasa-dark: #071b33;  /* keep deep dark for text */
+  --page-bg: #f6f8fb;
+
+  /* Typography tokens (from Sass mapping) */
+  --font-lang: "Helvetica", "Helvetica Neue", Arial, sans-serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-role-heading: var(--font-lang);
+
+  /* Heading sizes (kept as before) */
+  --h3-size: 1.125rem;
+  --h4-size: 1rem;
+  --h5-size: 0.9375rem;
+  --h6-size: 0.8125rem;
+}
+
 /* Base page styles */
 body {
-  font-family: Arial, sans-serif;
-  background-color: #f1f1f1;
+  font-family: var(--font-body);
+  background-color: var(--page-bg);
   padding: 20px;
+  padding-top: 0%;
 }
 
 /* Centered container */
@@ -22,22 +56,46 @@ body {
 .site-header {
   display: flex;
   align-items: center;
+  /* make header stretch full viewport width while kept inside .container */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  /* center the content (logo / favicon / title) */
   justify-content: center;
-  padding-top: 20px;
-  padding-bottom: 20px;
+  padding-top: 12px;
+  padding-bottom: 12px;
   margin-bottom: 20px;
+  /* remove inset padding used previously */
+  padding-left: 0;
+
+  /* full-width black background */
+  background: #000;
+  color: #fff;
+  /* remove rounded corners so the black bar is flush across the screen */
+  border-radius: 0;
+  box-shadow: 0 6px 18px rgba(11,61,145,0.08);
 }
 
+/* Title on header: use heading role font */
 h1 {
-  font-family: Verdana, sans-serif;
+  font-family: var(--font-role-heading);
   font-weight: bold;
-  color: #212121;
+  color: #fff;
 }
 
 /* Logo */
 .logo {
-  width: 140px;
+  width: 150px;
   margin-right: 15px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+/* Favicon shown at left of header */
+.favicon {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  margin-right: 12px;
+  border-radius: 6px;
 }
 
 /* Date‐picker & button row */
@@ -64,14 +122,22 @@ button {
   width: 100%;
 }
 
-/* Button specific */
+/* Button specific - primary action uses NASA red */
 button {
-  background-color: #d3d3d3;
-  color: black;
-  cursor: pointer;
+  background-color: var(--nasa-red);
+  color: #fff;
+  border: 0;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
 button:hover {
-  background-color: #bfbfbf;
+  background-color: rgb(172,17,34); /* slightly darker red */
+}
+
+/* Focus ring for accessibility */
+button:focus {
+  outline: 3px solid rgba(25,112,214,0.18);
+  outline-offset: 2px;
 }
 
 /* Stack horizontally on wider screens */
@@ -108,6 +174,49 @@ button:hover {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* new: smooth transform & shadow transitions for hover/focus */
+  transition: transform 180ms ease, box-shadow 180ms ease;
+  position: relative; /* for the overlay */
+  cursor: pointer;
+}
+
+/* Slight lift + scale on hover or when focused via keyboard */
+.gallery-item:hover,
+.gallery-item:focus-within,
+.gallery-item:focus {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  z-index: 2;
+}
+
+/* "Learn More" badge shown on hover/focus — use NASA red */
+.gallery-item::after {
+  content: 'Learn More';
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  transform: translate(-50%, -6px);
+  background: var(--nasa-red);
+  color: #fff;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity 160ms ease, transform 160ms ease;
+  pointer-events: none;
+}
+
+.gallery-item:hover::after,
+.gallery-item:focus-within::after,
+.gallery-item:focus::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* Provide clear keyboard focus ring for accessibility */
+.gallery-item:focus {
+  outline: 3px solid rgba(21, 156, 228, 0.25);
+  outline-offset: 4px;
 }
 
 /* Three columns on wider screens */
@@ -124,21 +233,124 @@ button:hover {
   border-radius: 4px;
 }
 
+/* Gallery item text sizes use theme tokens */
 .gallery-item p {
   margin-top: 10px;
   padding: 5px;
-  font-size: 14px;
+  font-size: var(--h5-size);
 }
 
-/* Placeholder content */
-.placeholder {
-  flex: 1 1 100%;
-  text-align: center;
-  padding: 40px;
-  color: #666;
+/* Modal styles */
+.modal {
+  display: none; /* hidden by default */
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
 }
 
-.placeholder-icon {
-  font-size: 48px;
-  margin-bottom: 20px;
+.modal[aria-hidden="false"] {
+  display: flex;
+}
+
+/* semi-opaque backdrop - tinted using NASA blue for consistent brand feel */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(11,61,145,0.68);
+}
+
+/* content box */
+.modal-content {
+  position: relative;
+  max-width: 900px;
+  width: calc(100% - 40px);
+  max-height: calc(100% - 80px);
+  background: #fff;
+  border-radius: 8px;
+  padding: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  overflow: auto;
+  z-index: 1001;
+  border: 1px solid rgba(11,61,145,0.06);
+}
+
+/* close control */
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  color: #333;
+}
+
+/* media area: image or thumbnail inside modal */
+.modal-media img,
+.modal-media iframe {
+  display: block;
+  width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+/* title and date */
+.modal-title {
+  margin-top: 12px;
+  font-size: var(--h3-size);
+  color: var(--nasa-blue);
+}
+.modal-date {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--nasa-dark);
+}
+
+/* explanation text */
+.modal-explanation {
+  margin-top: 12px;
+  font-size: 0.95rem;
+  color: #333;
+  line-height: 1.5;
+}
+
+/* ensure small screens look good */
+@media (max-width: 640px) {
+  .modal-content { padding: 12px; }
+  .modal-title { font-size: 18px; }
+  .modal-explanation { font-size: 14px; }
+}
+
+/* Links and video-open-link styled with NASA blue */
+a,
+.video-open-link {
+  color: var(--theme-color-primary);
+}
+a:hover,
+.video-open-link:hover {
+  color: var(--theme-color-accent-cool);
+}
+
+/* Did You Know fact box */
+.did-you-know {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: #fff;
+  border-left: 4px solid var(--theme-color-primary);
+  padding: 10px 14px;
+  margin: 12px 20px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  color: var(--nasa-dark);
+  font-size: 0.95rem;
+}
+.did-you-know strong {
+  color: var(--theme-color-primary);
+  margin-right: 6px;
 }
